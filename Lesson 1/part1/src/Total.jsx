@@ -1,6 +1,5 @@
-const Content = (props) => {
-    return (  
-        <p>Number of exercises {props.parts[0].exercises + props.parts[1].exercises + props.parts[2].exercises}</p> 
-    )
-  } 
-  export default Content
+const Total = ({sum}) => ( 
+    <b>total of {sum} exercises</b> 
+)
+
+export default Total
