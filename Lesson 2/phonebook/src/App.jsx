@@ -3,7 +3,8 @@ import Display from './Display'
 import PersonForm from './PersonForm'
 import Filter from './Filter' 
 import { useEffect } from 'react'
-import axios from 'axios'
+import Notification from './Notification' 
+import Error from './Error'
 import api from './services/api'
 
 const App = () => {
@@ -13,6 +14,8 @@ const App = () => {
   const [newNumber, setNewNumber] = useState('')
 
   const [filter, setFilter] = useState('')
+  const [notification, setNotification] = useState(null)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     api
@@ -28,7 +31,8 @@ const App = () => {
       name: newName,
       number: newNumber
     } 
-
+    
+     
     if(persons.some(obj => obj.name === newName)){
       if(window.confirm(`${newName} is already added to phonebook, replace the old number with a new one?`))
       {
@@ -36,6 +40,17 @@ const App = () => {
         api.update(id, personObject)
         .then(response => {
           setPersons(persons.map(person => person.name !== newName ? person : response))
+          setNotification(`${newName} was successfully added to the phonebook`)
+          setTimeout(()=>{
+            setNotification(null)
+          },5000)
+
+        })
+        .catch(error => { 
+          setError(`${newName} was already removed!`)
+          setTimeout(()=>{
+            setError(null)
+          },5000) 
         })
       }
     }
@@ -45,10 +60,16 @@ const App = () => {
         .then(response => {
           setPersons(persons.concat(response))
         })
+        setNotification(`${newName} was successfully added to the phonebook`)
+        setTimeout(()=>{
+          setNotification(null)
+        },5000)
+
     
       setNewName("") 
       setNewNumber("") 
-    } 
+    }  
+  
   }
 
   const deletePerson = (personId) => {
@@ -77,6 +98,8 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2> 
+      <Notification message = {notification} />
+      <Error message = {error} />
       <Filter filter= {filter} handleFilterChange = {handleFilterChange} /> 
 
       <h2>add a new</h2> 
