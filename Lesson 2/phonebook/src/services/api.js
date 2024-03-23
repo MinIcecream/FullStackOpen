@@ -1,7 +1,7 @@
  
 import axios from 'axios'
 
-const baseUrl = "/api/notes" 
+const baseUrl = "/api/persons" 
 
 const create = newPerson => {
     return axios.post(baseUrl, newPerson)
