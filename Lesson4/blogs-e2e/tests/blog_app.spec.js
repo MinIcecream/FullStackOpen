@@ -11,6 +11,13 @@ describe('Blog app', () => {
             password: '1234'
         }
     })
+    await request.post('http://localhost:3003/api/users', {
+        data: {
+            name: 'Bob Randall',
+            username: 'bigBob',
+            password: 'secret'
+        }
+    })
     await page.goto('http://localhost:5173')
   })
 
@@ -51,13 +58,44 @@ describe('Blog app', () => {
     describe('and several blogs exist', () => {
         beforeEach(async ({ page }) => {
             await createBlog(page, 'test title')
+            await page.waitForTimeout(500)
             await createBlog(page, 'test title 2')
         })
-        test.only('can like a blog', async({page}) => {
-            const blog = await page.getByText('test title')
-            await blog.getByRole('button', {name: 'like'}).click()
-            await expect(blog.getByText('likes 1')).toBeVisible()
-        })
+        test('can like a blog', async({page}) => {
+            const blog = await page.getByText('test title test author') 
+            await blog.getByRole('button', {name: 'view'}).click() 
+            await page.getByRole('button', {name: 'like'}).click()
+            await expect(page.getByText('likes 1')).toBeVisible()
+        }) 
+        test('creator can delete a blog', async({page}) => {
+          page.on('dialog', dialog => dialog.accept());
+          await page.waitForTimeout(500)
+            const blog = await page.getByText('test title test author') 
+            await page.waitForTimeout(100)
+            await blog.getByRole('button', {name: 'view'}).click() 
+            await page.waitForTimeout(100)
+            await page.getByRole('button', {name: 'delete'}).click()
+            await expect(page.getByText('test title test author')).not.toBeVisible()
+        }) 
+        test('non creator cannot delete a blog', async({page}) => { 
+            await page.getByRole('button', {name: 'logout'}).click() 
+            await loginWith(page, 'bigBob', 'secret')
+            await page.waitForTimeout(500)
+            const blog = await page.getByText('test title test author') 
+            await page.waitForTimeout(500)
+            await blog.getByRole('button', {name: 'view'}).click()  
+            await expect(page.getByText('delete')).not.toBeVisible()
+        }) 
+        test('blogs are ordered by likes', async({page}) => {  
+          await page.waitForTimeout(500)
+          const blog = await page.getByText('test title test author') 
+          const blog2 = await page.getByText('test title 2 test author') 
+          await blog2.getByRole('button', {name: 'view'}).click()  
+          await page.getByRole('button', {name: 'like'}).click() 
+          const blog1Y = await blog.boundingBox.y
+          const blog2Y = await blog2.boundingBox.y
+          expect(blog2Y > blog1Y)
+      }) 
     })
   })
 })

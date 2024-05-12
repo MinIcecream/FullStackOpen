@@ -28,10 +28,10 @@ blogsRouter.post('/', middleware.userExtractor, async (request, response) => {
 	const blogUser = await User.findById(decodedToken.id)
  
 	blog.user = blogUser  
-
-	const result = await blog.save() 
-	blogUser.blogs = blogUser.blogs.concat(result._id)
-	await blogUser.save()
+ 
+	const result = await blog.save()  
+	blogUser.blogs = blogUser.blogs.concat(result._id) 
+	await blogUser.save() 
 
 	response.status(201).json(result) 
 })
