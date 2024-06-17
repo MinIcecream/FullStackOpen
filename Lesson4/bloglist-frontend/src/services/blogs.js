@@ -20,12 +20,13 @@ const create = async newObject => {
   return response.data
 }
 
-const update = async newObject => {
+const update = async newObject => { 
   const config = {
     headers: { Authorization: token },
   }
 
-  const response = await axios.put(`${baseUrl}/${newObject.id}`, newObject, config)
+  const response = await axios.put(`${baseUrl}/${newObject.id}`, newObject, config) 
+  console.log(response.data)
   return response.data
 }
 
@@ -34,11 +35,22 @@ const remove = async newObject => {
     headers: { Authorization: token },
   }
   try{
-    await axios.delete(`${baseUrl}/${newObject.id}`, config)
-
+    await axios.delete(`${baseUrl}/${newObject.id}`, config) 
   }
   catch(error){
     console.log("ERROR", error)
   } 
 }
-export default { getAll, setToken, create, update, remove }
+const comment = async (newObject) => {
+  const config = {
+    headers: { Authorization: token },
+  }
+  try{
+    const response = await axios.post(`${baseUrl}/${newObject.id}/comments`, newObject, config) 
+    return newObject
+  }
+  catch(error){
+    console.log("ERROR", error)
+  } 
+}
+export default { getAll, setToken, create, update, remove, comment }

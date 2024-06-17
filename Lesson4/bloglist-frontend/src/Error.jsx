@@ -1,6 +1,9 @@
-const Error = ({ message }) => {
+import { useSelector } from 'react-redux' 
 
-  if (message === null)
+const Error = () => {
+  const message = useSelector(state => state.errors)
+
+  if (message === "")
   {
     return null
   }

@@ -6,31 +6,56 @@ import blogService from './services/blogs'
 import loginService from './services/login'
 import Notification from './Notification'
 import Error from './Error'
-
-const App = () => {
-  const [blogs, setBlogs] = useState([])
+import { useDispatch, useSelector } from 'react-redux' 
+import { setNotification } from './reducers/notificationReducer'
+import { setError } from './reducers/errorReducer'
+import { addBlog, initializeBlogs } from './reducers/blogReducer'
+import { setUser, removeUser } from './reducers/userReducer'
+import {Link, Route, Routes, useMatch, useNavigate} from "react-router-dom"
+import UsersPage from './components/UsersPage'
+import User from './components/User'
+import userService from './services/users' 
+import SingleBlogPage from './components/BlogPage'
+import {Nav, Navbar, Table} from 'react-bootstrap'
+const App = () => { 
   const [username, setUsername] = useState([])
-  const [password, setPassword] = useState([])
-  const [user, setUser] = useState(null)
-  const [error, setError] = useState(null)
-  const [notification, setNotification] = useState(null)
+  const [password, setPassword] = useState([]) 
+  const [users, setUsers] = useState([])
   const blogFormRef = useRef()
+  const blogs = useSelector(state => state.blogs)
+  const user = useSelector(state => state.users)
+  const dispatch = useDispatch() 
+ 
+  useEffect(() => {
+    dispatch(initializeBlogs())
+  }, []) 
 
   useEffect(() => {
-    blogService.getAll().then(blogs =>
-      setBlogs( blogs )
-    )
-  }, [])
-
-  useEffect(() => {
-    const loggedUserJSON = window.localStorage.getItem('loggedBlogappUser')
+    const loggedUserJSON = window.localStorage.getItem('loggedBlogappUser') 
     if (loggedUserJSON) {
-      const user = JSON.parse(loggedUserJSON)
-      setUser(user)
-      blogService.setToken(user.token)
+      const loggedInUser = JSON.parse(loggedUserJSON)
+      dispatch(setUser(loggedInUser)) 
     }
   }, [])
 
+  useEffect(() => { 
+      const fetchUsers = async () => {
+        const allUsers = await userService.getAll()
+        setUsers(allUsers)
+      }
+      fetchUsers()
+    }, [])
+   
+  const match = useMatch('/users/:id') 
+  const routeUser = match
+    ? users.find(user => user.id === match.params.id)
+    : null    
+
+  const blogMatch = useMatch('/blogs/:id') 
+  const routeBlog = blogMatch
+    ? blogs.find(blog => blog.id === blogMatch.params.id)
+    : null     
+  
   const handleLogin = async (event) => {
     event.preventDefault()
 
@@ -38,13 +63,8 @@ const App = () => {
       const user = await loginService.login({
         username, password,
       })
-
-      window.localStorage.setItem(
-        'loggedBlogappUser', JSON.stringify(user)
-      )
-
-      blogService.setToken(user.token)
-      setUser(user)
+ 
+      dispatch(setUser(user))
       setUsername('')
       setPassword('')
     }
@@ -55,24 +75,17 @@ const App = () => {
       }, 5000)
     }
   }
-  const handleLogout = () => {
-    window.localStorage.removeItem('loggedBlogappUser')
-    setUser(null)
+  const handleLogout = () => { 
+    dispatch(removeUser())
   }
   const createBlog = async(blog) => {
     blogFormRef.current.toggleVisibility()
-    try{
-      await blogService.create(blog).then(returnedBlog => {setBlogs(blogs.concat(returnedBlog))})
-      setNotification(`${blog.title} by ${blog.author} added`)
-      setTimeout(() => {
-        setNotification(null)
-      }, 5000)
+    try{ 
+      await dispatch(addBlog(blog))
+      dispatch(setNotification("you created a blog", 5000)) 
     }
     catch(error){
-      setError('Error adding blog!')
-      setTimeout(() => {
-        setError(null)
-      }, 5000)
+      dispatch(setError("Error adding blog", 5000)) 
     }
   }
 
@@ -136,37 +149,89 @@ const App = () => {
   )
 
   const blogForm = () => (
-    <Togglable buttonLabel = 'new blog' ref = {blogFormRef}>
-      <BlogForm createBlog = {createBlog} />
-    </Togglable>
+    <> 
+      <Togglable buttonLabel = 'new blog' ref = {blogFormRef}>
+        <BlogForm createBlog = {createBlog} />
+      </Togglable>
+    </> 
   )
+
+  const blogList = () => { 
+    return(
+    <> 
+      <Table striped>
+        <tbody> 
+          {blogs.slice().sort((a, b) => b.likes - a.likes).map(blog => {
+            return <tr key = {blog.id}><td><Blog likeBlog = {likeBlog} key={blog.id} blog={blog} user = {user} deleteBlog = {deleteBlog}/></td></tr> 
+          })}
+        </tbody>
+      </Table>
+    </>
+    ) 
+  }
+
+  const BlogPage = () => {
+    return (
+      <div>
+        {blogForm()}
+        {blogList()} 
+      </div>
+    )
+  }
 
   if (user === null) {
     return (
       <div>
-        <Notification message = {notification}/>
-        <Error message = {error}/>
+        <Notification/>
+        <Error />
 
         <h2>Log into application</h2>
         {loginForm()}
       </div>
     )
-  }
-
+  } 
+    
   return (
     <div>
-      <Notification message = {notification}/>
-      <Error message = {error}/>
+      <Notification/>
+      <Error /> 
+      <Navbar collapseOnSelect expand="lg" bg="dark" variant="dark">
+        
+        <Navbar.Toggle aria-controls="responsive-navbar-nav" />
+        <Navbar.Collapse aria-controls="responsive-navbar-nav"> 
+          <Nav className = "me-auto">
+            <Nav.Link href = "#" as = "span">
+              <Link to = '/'>blogs</Link>   
+            </Nav.Link>
+            <Nav.Link href = "#" as = "span">
+              <Link to = '/users'>users</Link>
+            </Nav.Link>
+            <Nav.Item>
+              <Nav.Link as = "span"> 
+                <button onClick = {handleLogout}>logout</button>  
+              </Nav.Link> 
 
-      <h2>blogs</h2>
-      <p>{user.name} logged in<button onClick = {handleLogout}>logout</button></p>
-      {blogs.sort((a, b) => b.likes - a.likes).map(blog => {
-        return <Blog likeBlog = {likeBlog} key={blog.id} blog={blog} user = {user} deleteBlog = {deleteBlog}/>
-      }
-      )}
+            </Nav.Item> 
 
-      <h2>create new</h2>
-      {blogForm()}
+            <Nav.Item>
+              <Nav.Link as="span" className="text-white">
+                <em>{user.name} logged in</em>
+              </Nav.Link>
+            </Nav.Item>
+          </Nav>  
+        </Navbar.Collapse>
+      </Navbar>
+
+      <div className='container'> 
+        <h2>blog app</h2>  
+        <Routes>
+          <Route path = "/" element = {<BlogPage />} />
+          <Route path = "/users" element = {<UsersPage />} /> 
+          <Route path = "/users/:id" element = {<User user = {routeUser} />} />
+          <Route path = "/blogs/:id" element = {<SingleBlogPage blog = {routeBlog} />} />
+        </Routes>  
+      </div>
+ 
     </div>
   )
 }
